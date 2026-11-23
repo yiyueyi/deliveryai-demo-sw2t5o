@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PRD 文档 · 点餐系统 HTML 页面</title>
+<style>
+  :root{
+    --rice-50:#fffdf8;--rice-100:#fbf5ea;--rice-200:#f3e6d0;
+    --charcoal-500:#5f5b55;--charcoal-700:#34312d;--charcoal-900:#211f1c;
+    --chili-50:#fff1ef;--chili-500:#e13b2b;--chili-600:#c92f21;
+    --amber-100:#fff2c7;--amber-400:#f5b83f;
+    --line:rgba(33,31,28,.1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter","Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--charcoal-900);background:var(--rice-100);line-height:1.75;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:40px 22px 80px}
+  header.hero{background:var(--charcoal-900);color:#fff;border-radius:24px;padding:30px 32px;position:relative;overflow:hidden;box-shadow:0 18px 50px rgba(78,34,20,.18)}
+  header.hero::after{content:"";position:absolute;right:-50px;top:-80px;width:240px;height:240px;border-radius:50%;background:rgba(225,59,43,.3);filter:blur(30px)}
+  header.hero h1{margin:6px 0 4px;font-size:28px;position:relative}
+  header.hero p{margin:0;color:var(--rice-200);font-size:14px;position:relative}
+  .badge{display:inline-block;background:var(--amber-400);color:var(--charcoal-900);font-size:12px;font-weight:800;border-radius:999px;padding:4px 12px;position:relative}
+  section.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px 28px;margin-top:20px;box-shadow:0 10px 30px rgba(70,45,25,.06)}
+  h2{font-size:20px;margin:0 0 14px;padding-left:12px;border-left:4px solid var(--chili-500)}
+  h3{font-size:16px;margin:20px 0 8px;color:var(--chili-600)}
+  p,li{font-size:14.5px;color:var(--charcoal-700)}
+  ul,ol{padding-left:22px;margin:8px 0}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.5px;background:#fff}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--rice-100);font-weight:700;white-space:nowrap}
+  tr:nth-child(even) td{background:var(--rice-50)}
+  code{background:var(--chili-50);color:var(--chili-600);padding:2px 7px;border-radius:6px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .tag{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:1px 8px;margin-left:6px}
+  .p0{background:var(--chili-500);color:#fff}.p1{background:var(--amber-100);color:var(--charcoal-900)}.p2{background:#eef2ff;color:#4338ca}
+  .ok{color:#16a34a;font-weight:700}
+  .meta{width:100%;margin-top:14px;font-size:13px}
+  .meta th{width:130px;background:transparent}
+  .note{background:var(--amber-100);border-radius:12px;padding:12px 16px;font-size:13.5px;color:var(--charcoal-700);margin-top:12px}
+  pre{background:var(--charcoal-900);color:var(--rice-200);border-radius:14px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.6}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:5px}
+  footer{text-align:center;color:var(--charcoal-500);font-size:12px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <span class="badge">需求设计 · v1.0 · 标准版</span>
+    <h1>PRD · 点餐系统 HTML 页面</h1>
+    <p>单文件原型 ｜ 原生 HTML/CSS/JS ｜ 零依赖浏览器直接打开</p>
+  </header>
+
+  <section class="card">
+    <table class="meta">
+      <tr><th>产品</th><td>沸点 · 火锅点餐（单文件交互原型）</td></tr>
+      <tr><th>交付物</th><td><code>prototype/ordering.html</code></td></tr>
+      <tr><th>版本范围</th><td>标准版：核心点餐 + 结算 + 下单成功反馈</td></tr>
+      <tr><th>关联文档</th><td>需求澄清Spec.md ｜ 变更说明.md ｜ PRD 文档.md</td></tr>
+      <tr><th>设计依据</th><td>tailwind 自定义色板、src/data/menu.ts、src/i18n.ts</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>1. 背景与目标</h2>
+    <p>仓库已有完整的 React+Vite 火锅点餐应用，但需构建后运行，不便“双击即开”快速预览。本需求交付一个<strong>单文件、零构建、零外部依赖</strong>的点餐页面，覆盖“浏览 → 加购 → 数量/合计 → 结算 → 下单成功”闭环，视觉对齐现网设计系统。</p>
+    <h3>非目标</h3>
+    <ul>
+      <li>不替代现有 React 应用，不接入真实后端 / 支付 / 库存 / 登录。</li>
+      <li>不做履约进度、退菜、呼叫服务、多语言、老人模式等增强能力。</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>2. 信息架构</h2>
+    <pre>顶部栏（品牌 · 营业状态 · 桌台）
+└── 主体：≥980px 菜单+购物车双栏 ｜ &lt;980px 单列
+    ├── 菜单区：Hero / 搜索 / 分类胶囊 / 菜品卡片网格
+    └── 购物车侧栏（仅桌面）
+移动端：底部常驻结算条（购物车入口 + 合计 + 去结算）
+弹层：规格选择 ｜ 购物车抽屉(移动) ｜ 结算 ｜ 下单成功  ＋ 全局 Toast</pre>
+  </section>
+
+  <section class="card">
+    <h2>3. 功能性需求</h2>
+    <table>
+      <tr><th>编号</th><th>需求</th><th>要点</th></tr>
+      <tr><td>F1 <span class="tag p0">P0</span></td><td>菜品分类与列表</td><td>6 分类（推荐为全部）、即时筛选高亮；卡片含图/标签/名/描述/起售价/加购；10 个示例 SKU。</td></tr>
+      <tr><td>F2 <span class="tag p1">P1</span></td><td>搜索</td><td>按名称/描述实时包含匹配，可与分类叠加；无结果有空状态。</td></tr>
+      <tr><td>F3 <span class="tag p0">P0</span></td><td>规格选择与加购</td><td>份量/口味/辣度动态展示；半份按 0.58 实时计价；超级辣二次确认；按“菜品+规格”合并入车并 Toast。</td></tr>
+      <tr><td>F4 <span class="tag p0">P0</span></td><td>购物车</td><td>明细/规格/行金额、数量步进（减到 0 移除）、总份数/小计/合计；空车空状态；桌面侧栏、移动抽屉。</td></tr>
+      <tr><td>F5 <span class="tag p0">P0</span></td><td>结算</td><td>逐行明细、小计、满减（满 100 减 30）、应付；移动支付/POS 二选一；空车禁入。</td></tr>
+      <tr><td>F6 <span class="tag p0">P0</span></td><td>下单成功反馈</td><td>成功图标、订单号、份数、支付方式、实付金额；成功后清空购物车。</td></tr>
+      <tr><td>F7 <span class="tag p1">P1</span></td><td>全局交互</td><td>遮罩/✕/Esc 关闭、Toast 反馈、弹层锁定背景滚动。</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>4. 非功能性需求</h2>
+    <table>
+      <tr><th>类别</th><th>要求</th></tr>
+      <tr><td>N1 可移植性 <span class="tag p0">P0</span></td><td>单个自包含 HTML，不引用任何外链 CSS/JS/字体/图片；emoji + 内联 SVG；支持 file:// 双击与静态服务。</td></tr>
+      <tr><td>N2 兼容性 <span class="tag p0">P0</span></td><td>主流 evergreen 浏览器；广泛支持的 JS/CSS，不依赖框架。</td></tr>
+      <tr><td>N3 响应式 <span class="tag p0">P0</span></td><td>560 / 980 断点：单列→双列→双栏；移动端底部条+底部抽屉；适配安全区；分类条横滚。</td></tr>
+      <tr><td>N4 可访问性 <span class="tag p1">P1</span></td><td>触控目标≥38px、aria-label/role=dialog、可读对比度。</td></tr>
+      <tr><td>N5 性能 <span class="tag p1">P1</span></td><td>约 36KB 单文件，首屏即时；内存过滤无网络往返。</td></tr>
+      <tr><td>N6 可维护性 <span class="tag p1">P1</span></td><td>数据与渲染分离（CATEGORIES/DISHES），色值集中于 CSS 变量。</td></tr>
+      <tr><td>N7 安全 <span class="tag p2">P2</span></td><td>动态文本统一转义防注入；不使用 localStorage 与隐私数据。</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>5. 业务规则</h2>
+    <table>
+      <tr><th>编号</th><th>规则</th></tr>
+      <tr><td>R1</td><td>半份价 = round(原价 × 0.58)（沿用现网，待业务最终确认）</td></tr>
+      <tr><td>R2</td><td>购物车合并键 = 菜品 ID + 规格串；不同规格独立成行</td></tr>
+      <tr><td>R3</td><td>合计 = Σ 单价 × 数量（优惠前口径）</td></tr>
+      <tr><td>R4</td><td>满 ¥100 减 ¥30，应付 = 小计 − 优惠</td></tr>
+      <tr><td>R5</td><td>“超级辣”需二次风险确认</td></tr>
+      <tr><td>R6</td><td>下单生成原型订单号 FD+年月日时分秒，并清空购物车</td></tr>
+      <tr><td>R7</td><td>空车不可结算；搜索无结果有空状态</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>6. 验收标准</h2>
+    <table>
+      <tr><th>#</th><th>验收点</th><th>预期</th><th>实测</th></tr>
+      <tr><td>AC1</td><td>查看菜品及价格</td><td>分类 + 10 菜品含价格</td><td class="ok">✅ 通过</td></tr>
+      <tr><td>AC2</td><td>选菜并调数量</td><td>规格加购、增减/移除、半份计价</td><td class="ok">✅ ¥42→¥24，×2=¥48</td></tr>
+      <tr><td>AC3</td><td>购物车明细与总价</td><td>数量/小计/合计联动</td><td class="ok">✅ ¥24×2+¥68=¥116</td></tr>
+      <tr><td>AC4</td><td>结算/下单反馈</td><td>满减、应付、成功页并清空</td><td class="ok">✅ −¥30，实付¥86</td></tr>
+      <tr><td>AC5</td><td>桌面/移动适配</td><td>双栏/单列、底部条+抽屉</td><td class="ok">✅ 1280 / 390 视口</td></tr>
+      <tr><td>AC6</td><td>零依赖直接打开</td><td>file:// 可用、无外链</td><td class="ok">✅ 单文件内联</td></tr>
+      <tr><td>AC7</td><td>搜索与分类</td><td>过滤/筛选/空状态</td><td class="ok">✅ 实测正确</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>7. 待确认项</h2>
+    <ul>
+      <li><strong>业务待确认：</strong>满减门槛/金额、半份 0.58 系数、超级辣文案是否为正式规则。</li>
+      <li><strong>技术待设计：</strong>真实菜单接口、订单号与优惠计算归属、库存售罄。</li>
+    </ul>
+    <div class="note">设计色板：
+      <span class="sw" style="background:#fbf5ea"></span>rice
+      <span class="sw" style="background:#211f1c"></span>charcoal
+      <span class="sw" style="background:#e13b2b"></span>chili
+      <span class="sw" style="background:#f5b83f"></span>amber
+    </div>
+  </section>
+
+  <footer>沸点 · 点餐系统单文件原型 PRD ｜ 需求设计节点 ｜ 详细内容以《PRD 文档.md》为准</footer>
+</div>
+</body>
+</html>

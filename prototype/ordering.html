@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#fbf5ea" />
+<meta name="description" content="点餐系统单文件原型：菜品分类/列表、加入购物车、数量与金额合计、结算下单反馈。原生 HTML/CSS/JS，零依赖可直接打开。" />
+<title>点餐系统 · 单文件原型</title>
+<style>
+  /* ===== 设计系统（对齐仓库 tailwind 自定义色板）===== */
+  :root{
+    --rice-50:#fffdf8; --rice-100:#fbf5ea; --rice-200:#f3e6d0;
+    --charcoal-500:#5f5b55; --charcoal-700:#34312d; --charcoal-900:#211f1c;
+    --chili-50:#fff1ef; --chili-100:#ffddd8; --chili-500:#e13b2b; --chili-600:#c92f21; --chili-700:#a9231a;
+    --amber-100:#fff2c7; --amber-400:#f5b83f; --amber-500:#e69b18;
+    --line:rgba(33,31,28,.06); --line-strong:rgba(33,31,28,.12);
+    --shadow-card:0 10px 30px rgba(70,45,25,.08);
+    --shadow-float:0 18px 55px rgba(78,34,20,.18);
+    --radius:22px;
+    --font:"Inter","Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);color:var(--charcoal-900);background:var(--rice-100);
+    line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom);
+  }
+  img{display:block;max-width:100%}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(95,91,85,.25);border-radius:8px}
+  .scrollbar-none{scrollbar-width:none}.scrollbar-none::-webkit-scrollbar{display:none}
+
+  /* ===== 顶部栏 ===== */
+  .topbar{
+    position:sticky;top:0;z-index:50;background:rgba(251,245,234,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  .brand-logo{width:38px;height:38px;border-radius:12px;background:var(--chili-500);color:#fff;display:grid;place-items:center;font-size:18px;box-shadow:var(--shadow-card)}
+  .brand small{display:block;font-size:11px;font-weight:600;color:var(--charcoal-500)}
+  .topbar-meta{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--charcoal-700)}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-card)}
+  .dot{width:7px;height:7px;border-radius:50%;background:#22c55e}
+
+  /* ===== 主体布局 ===== */
+  .layout{max-width:1200px;margin:0 auto;padding:18px 16px 110px;display:grid;grid-template-columns:1fr;gap:20px}
+  @media(min-width:980px){.layout{grid-template-columns:1fr 380px;padding:24px 24px 40px}}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;border-radius:26px;background:var(--charcoal-900);color:#fff;padding:22px;box-shadow:var(--shadow-card)}
+  .hero::after{content:"";position:absolute;right:-40px;top:-70px;width:220px;height:220px;border-radius:50%;background:rgba(225,59,43,.3);filter:blur(40px)}
+  .hero>*{position:relative}
+  .hero .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--amber-400)}
+  .hero h1{font-size:26px;font-weight:800;margin-top:8px;letter-spacing:.5px}
+  .hero p{margin-top:6px;font-size:13px;color:var(--rice-200)}
+
+  /* 搜索 + 分类 */
+  .menu-sticky{position:sticky;top:64px;z-index:30;background:rgba(251,245,234,.95);backdrop-filter:blur(8px);padding:12px 0;margin:4px 0 2px}
+  .search{position:relative}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--charcoal-500)}
+  .search input{width:100%;height:46px;border-radius:16px;border:1px solid var(--line);background:#fff;padding:0 16px 0 42px;font-size:14px;font-family:inherit;outline:none;transition:box-shadow .2s,border-color .2s;box-shadow:0 1px 2px rgba(0,0,0,.02)}
+  .search input:focus{border-color:rgba(225,59,43,.35);box-shadow:0 0 0 4px var(--chili-50)}
+  .cats{display:flex;gap:8px;overflow-x:auto;margin-top:12px;padding-bottom:2px}
+  .cat{white-space:nowrap;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700;background:#fff;color:var(--charcoal-500);transition:all .2s;border:1px solid transparent}
+  .cat:hover{color:var(--chili-500)}
+  .cat.active{background:var(--chili-500);color:#fff;box-shadow:0 6px 16px rgba(225,59,43,.28)}
+
+  /* 菜品网格 */
+  .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:8px}
+  @media(min-width:560px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-card);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s;animation:rise .35s ease-out both}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-float)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .thumb{position:relative;height:150px;display:grid;place-items:center;font-size:58px;overflow:hidden}
+  .thumb.t-broth{background:linear-gradient(135deg,#ffe3c2,#ffd0c4)}
+  .thumb.t-meat{background:linear-gradient(135deg,#ffd9d2,#ffc2b8)}
+  .thumb.t-seafood{background:linear-gradient(135deg,#d6f0ff,#cfe6ff)}
+  .thumb.t-veggie{background:linear-gradient(135deg,#e3f6d0,#d4efc0)}
+  .thumb.t-staple{background:linear-gradient(135deg,#fff0c9,#ffe6a8)}
+  .tag{position:absolute;left:10px;top:10px;background:var(--amber-400);color:var(--charcoal-900);font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px}
+  .tag.soldout{background:rgba(255,255,255,.85);color:var(--charcoal-700)}
+  .card-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
+  .card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .card-head h3{font-size:15px;font-weight:800}
+  .card-head p{font-size:12px;color:var(--charcoal-500);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .card-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+  .price{font-size:19px;font-weight:800;color:var(--chili-500)}
+  .price small{font-size:11px;font-weight:500;color:var(--charcoal-500)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;font-weight:700;font-size:14px;padding:11px 16px;transition:transform .12s,background .2s,box-shadow .2s;border:1px solid transparent;white-space:nowrap}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--chili-500);color:#fff;box-shadow:0 8px 20px rgba(225,59,43,.25)}
+  .btn-primary:hover{background:var(--chili-600)}
+  .btn-outline{background:#fff;border-color:var(--line-strong);color:var(--charcoal-700)}
+  .btn-block{width:100%}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .btn-icon{width:40px;height:40px;border-radius:50%;padding:0;flex:none}
+  .empty-search{grid-column:1/-1;text-align:center;color:var(--charcoal-500);padding:50px 20px;font-size:14px;background:#fff;border-radius:var(--radius);border:1px dashed var(--line-strong)}
+
+  /* ===== 购物车侧栏 ===== */
+  .aside{min-width:0;display:none}
+  @media(min-width:980px){
+    .aside{display:block}
+    .aside-inner{position:sticky;top:96px}
+  }
+  .cart{background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow-card);padding:18px}
+  .cart-head{display:flex;align-items:center;justify-content:space-between}
+  .cart-head h3{font-size:17px;font-weight:800}
+  .cart-head .count{font-size:12px;color:var(--charcoal-500);margin-top:2px}
+  .cart-empty{text-align:center;padding:26px 10px}
+  .cart-empty .ico{width:54px;height:54px;border-radius:16px;background:var(--rice-100);color:var(--chili-500);display:grid;place-items:center;margin:0 auto}
+  .cart-empty h4{margin-top:12px;font-weight:700}
+  .cart-empty p{margin-top:6px;font-size:13px;color:var(--charcoal-500);white-space:pre-line}
+  .cart-items{margin-top:14px;display:flex;flex-direction:column;gap:14px;max-height:46vh;overflow:auto;padding-right:2px}
+  .ci{display:flex;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  .ci:last-child{border-bottom:none;padding-bottom:0}
+  .ci .emoji{width:58px;height:58px;border-radius:14px;display:grid;place-items:center;font-size:30px;flex:none}
+  .ci-main{min-width:0;flex:1}
+  .ci-line{display:flex;justify-content:space-between;gap:8px}
+  .ci-name{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ci-price{font-size:14px;font-weight:700;color:var(--chili-500);flex:none}
+  .ci-spec{font-size:11px;color:var(--charcoal-500);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ci-ctrl{margin-top:8px;display:flex;align-items:center;justify-content:space-between}
+  .stepper{display:inline-flex;align-items:center;gap:4px;background:var(--rice-100);border-radius:10px;padding:3px}
+  .stepper button{width:26px;height:26px;border-radius:8px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);display:grid;place-items:center;color:var(--charcoal-700)}
+  .stepper button.plus{background:var(--chili-500);color:#fff}
+  .stepper .qty{min-width:22px;text-align:center;font-size:13px;font-weight:800}
+  .totals{margin-top:16px;background:var(--rice-100);border-radius:16px;padding:14px}
+  .totals .row{display:flex;justify-content:space-between;font-size:13px;color:var(--charcoal-500)}
+  .totals .grand{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-weight:800;color:var(--charcoal-900)}
+  .totals .grand b{font-size:22px;color:var(--chili-500)}
+  .hint{text-align:center;font-size:11px;color:var(--charcoal-500);margin-top:10px}
+
+  /* ===== 移动端底部结算条 ===== */
+  .checkout-bar{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -10px 30px rgba(70,45,25,.1);display:flex;align-items:center;gap:12px}
+  @media(min-width:980px){.checkout-bar{display:none}}
+  .bar-cart{position:relative;width:52px;height:52px;border-radius:50%;background:var(--charcoal-900);color:#fff;display:grid;place-items:center;flex:none}
+  .bar-badge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--chili-500);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;border:2px solid #fff}
+  .bar-total{flex:1;min-width:0}
+  .bar-total small{display:block;font-size:11px;color:var(--charcoal-500)}
+  .bar-total b{font-size:20px;color:var(--chili-500)}
+  .bar-btn{height:48px;padding:0 22px;border-radius:14px}
+
+  /* ===== 弹层（规格 / 结算 / 成功）===== */
+  .overlay{position:fixed;inset:0;z-index:100;background:rgba(33,31,28,.5);backdrop-filter:blur(2px);display:none;align-items:flex-end;justify-content:center}
+  @media(min-width:640px){.overlay{align-items:center;padding:20px}}
+  .overlay.show{display:flex;animation:fade .2s ease-out}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .sheet{background:var(--rice-50);width:100%;max-width:460px;border-radius:26px 26px 0 0;padding:20px;box-shadow:var(--shadow-float);max-height:92vh;overflow:auto;animation:sheetUp .28s cubic-bezier(.2,.8,.2,1)}
+  @media(min-width:640px){.sheet{border-radius:26px}}
+  @keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .sheet-head h3{font-size:18px;font-weight:800}
+  .x{width:34px;height:34px;border-radius:50%;background:var(--rice-200);color:var(--charcoal-700);display:grid;place-items:center;flex:none;font-size:18px}
+  .spec-dish{display:flex;gap:14px;background:#fff;border-radius:16px;padding:12px;margin-top:14px}
+  .spec-dish .emoji{width:88px;height:88px;border-radius:14px;display:grid;place-items:center;font-size:44px;flex:none}
+  .spec-dish p{font-size:13px;color:var(--charcoal-500);line-height:1.6}
+  .opt-group{margin-top:18px}
+  .opt-group>p{font-size:14px;font-weight:700;margin-bottom:10px}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{border:1px solid var(--line-strong);background:#fff;color:var(--charcoal-500);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;transition:all .15s}
+  .opt.active{border-color:var(--chili-500);background:var(--chili-50);color:var(--chili-600)}
+
+  /* 结算 */
+  .co-list{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .co-row{display:flex;justify-content:space-between;font-size:14px}
+  .co-row span:first-child{color:var(--charcoal-700)}
+  .co-divider{border-top:1px dashed var(--line-strong);margin-top:14px;padding-top:12px;display:flex;flex-direction:column;gap:10px}
+  .co-methods{display:flex;gap:10px;margin-top:16px}
+  .method{flex:1;display:flex;align-items:center;gap:10px;border:1px solid var(--line-strong);background:#fff;border-radius:14px;padding:12px;text-align:left}
+  .method.active{border-color:var(--chili-500);background:var(--chili-50)}
+  .method .m-ico{width:38px;height:38px;border-radius:10px;background:#fff;display:grid;place-items:center;flex:none}
+  .method strong{font-size:13px;display:block}
+  .method small{font-size:11px;color:var(--charcoal-500)}
+
+  /* 成功页 */
+  .success{text-align:center;padding:18px 8px}
+  .success .ok{width:80px;height:80px;border-radius:50%;background:#ecfdf3;color:#16a34a;display:grid;place-items:center;margin:6px auto 0}
+  .success .okbadge{margin-top:16px;font-size:12px;font-weight:800;color:#16a34a;letter-spacing:1px}
+  .success h2{font-size:24px;font-weight:800;margin-top:6px}
+  .success p{margin-top:10px;font-size:13px;color:var(--charcoal-500);white-space:pre-line;line-height:1.7}
+  .success .paid{margin-top:18px;background:var(--rice-100);border-radius:16px;padding:16px}
+  .success .paid small{color:var(--charcoal-500)}
+  .success .paid b{display:block;font-size:30px;color:var(--chili-500);margin-top:4px}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);z-index:200;background:var(--charcoal-900);color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:all .25s;box-shadow:var(--shadow-float);max-width:88%;text-align:center}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(min-width:980px){.toast{bottom:32px}}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-logo">🍲</span>
+        <div>沸点 · 点餐<small>BOILING MOMENT</small></div>
+      </div>
+      <div class="topbar-meta">
+        <span class="pill"><span class="dot"></span>营业中</span>
+        <span class="pill">🪑 A08 桌 · 大厅</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左：菜单 -->
+    <section>
+      <div class="hero">
+        <span class="badge">✨ 今日好味已备齐</span>
+        <h1>想吃什么，一起点。</h1>
+        <p>分类挑选、加入购物车，确认后一键下单结算</p>
+      </div>
+
+      <div class="menu-sticky">
+        <div class="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" type="search" placeholder="搜索锅底、菜品或饮品" aria-label="搜索菜品" />
+        </div>
+        <nav id="catBar" class="cats scrollbar-none" aria-label="菜品分类"></nav>
+      </div>
+
+      <div id="dishGrid" class="grid" aria-live="polite"></div>
+    </section>
+
+    <!-- 右：购物车（桌面） -->
+    <aside class="aside">
+      <div class="aside-inner">
+        <div class="cart" id="cartPanel"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- 移动端底部结算条 -->
+  <div class="checkout-bar">
+    <button class="bar-cart" id="barCartBtn" aria-label="查看购物车">
+      🛒<span class="bar-badge" id="barBadge">0</span>
+    </button>
+    <div class="bar-total"><small>合计（不含优惠）</small><b id="barTotal">¥0</b></div>
+    <button class="btn btn-primary bar-btn" id="barCheckoutBtn">去结算</button>
+  </div>
+
+  <!-- 规格选择弹层 -->
+  <div class="overlay" id="specOverlay">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="specTitle"></div>
+  </div>
+
+  <!-- 购物车/结算/成功共用弹层（移动端查看购物车 + 结算） -->
+  <div class="overlay" id="modalOverlay">
+    <div class="sheet" id="modalSheet" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============ 数据（Mock，结构对齐仓库 src/data/menu.ts）============ */
+  var CATEGORIES = [
+    {id:"all",      name:"推荐"},
+    {id:"broth",    name:"锅底"},
+    {id:"meat",     name:"牛羊肉"},
+    {id:"seafood",  name:"海鲜河鲜"},
+    {id:"veggie",   name:"蔬菜豆品"},
+    {id:"staple",   name:"主食饮品"}
+  ];
+
+  // halfFactor 对齐 React 版半份 0.58 计价
+  var DISHES = [
+    {id:"p1", cat:"broth",   name:"鎏金番茄鸳鸯锅", desc:"慢熬番茄与醇香牛油，一锅双味", price:68, emoji:"🍲", tone:"t-broth", tag:"人气 No.1", options:{flavor:["番茄 + 牛油","菌汤 + 牛油"], spicy:["微辣","中辣","重辣","超级辣"]}},
+    {id:"p2", cat:"broth",   name:"牛油麻辣锅", desc:"醇厚牛油，花椒与辣椒层层释香", price:59, emoji:"🌶️", tone:"t-broth", tag:"招牌", options:{spicy:["微辣","中辣","重辣","超级辣"]}},
+    {id:"p3", cat:"meat",    name:"琥珀嫩牛肉", desc:"鲜切嫩牛肉，涮煮约 30 秒", price:42, emoji:"🥩", tone:"t-meat", tag:"主厨推荐", options:{portion:["半份","整份"], flavor:["原味","香辣腌制"]}},
+    {id:"p4", cat:"meat",    name:"雪花肥牛卷", desc:"脂香均匀，鲜嫩不腻", price:48, emoji:"🥓", tone:"t-meat", options:{portion:["半份","整份"]}},
+    {id:"p5", cat:"seafood", name:"鲜虾滑", desc:"虾肉含量充足，弹嫩鲜甜", price:39, emoji:"🦐", tone:"t-seafood", tag:"新品", options:{portion:["半份","整份"]}},
+    {id:"p6", cat:"seafood", name:"脆嫩毛肚", desc:"七上八下，爽脆入味", price:46, emoji:"🍢", tone:"t-seafood", options:{portion:["半份","整份"]}},
+    {id:"p7", cat:"veggie",  name:"田园蔬菜拼盘", desc:"时令鲜蔬，清甜爽口", price:28, emoji:"🥬", tone:"t-veggie", options:{portion:["半份","整份"]}},
+    {id:"p8", cat:"veggie",  name:"山野菌菇拼盘", desc:"多种菌菇，鲜香层次丰富", price:32, emoji:"🍄", tone:"t-veggie", options:{portion:["半份","整份"]}},
+    {id:"p9", cat:"staple",  name:"手工宽粉", desc:"久煮不烂，筋道挂汁", price:16, emoji:"🍜", tone:"t-staple", options:{portion:["半份","整份"]}},
+    {id:"p10",cat:"staple",  name:"柠檬青桔饮", desc:"清爽解辣，冰镇更佳", price:18, emoji:"🍋", tone:"t-staple", options:{flavor:["少冰","正常冰","去冰"]}}
+  ];
+
+  /* ============ 状态 ============ */
+  var state = {
+    activeCat:"all",
+    keyword:"",
+    cart:[],            // {uid,dishId,name,emoji,tone,unitPrice,qty,spec}
+    payMethod:"mobile",
+    paid:false,
+    orderNo:""
+  };
+  var uidSeq = 0;
+  function uid(){ return "u" + (++uidSeq) + "_" + Date.now(); }
+  function money(n){ return "¥" + (Math.round(n*100)/100).toString(); }
+
+  /* ============ 工具 ============ */
+  var $ = function(sel,root){ return (root||document).querySelector(sel); };
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  var toastTimer=null;
+  function toast(msg){
+    var el=$("#toast"); el.textContent=msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){el.classList.remove("show");},1800);
+  }
+
+  function cartCount(){ return state.cart.reduce(function(s,i){return s+i.qty;},0); };
+  function cartSubtotal(){ return state.cart.reduce(function(s,i){return s+i.unitPrice*i.qty;},0); };
+  function discount(){ return cartSubtotal()>=100?30:0; }
+  function payable(){ return cartSubtotal()-discount(); }
+
+  /* ============ 渲染：分类 + 菜品 ============ */
+  function renderCats(){
+    $("#catBar").innerHTML = CATEGORIES.map(function(c){
+      return '<button class="cat'+(state.activeCat===c.id?" active":"")+'" data-cat="'+c.id+'">'+esc(c.name)+"</button>";
+    }).join("");
+  }
+
+  function visibleDishes(){
+    var kw=state.keyword.trim();
+    return DISHES.filter(function(d){
+      var okCat = state.activeCat==="all" || d.cat===state.activeCat;
+      var okKw = !kw || d.name.indexOf(kw)>=0 || d.desc.indexOf(kw)>=0;
+      return okCat && okKw;
+    });
+  }
+
+  function renderDishes(){
+    var list=visibleDishes();
+    var grid=$("#dishGrid");
+    if(!list.length){
+      grid.innerHTML='<div class="empty-search">没有找到「'+esc(state.keyword)+'」相关的菜品，换个关键词试试～</div>';
+      return;
+    }
+    grid.innerHTML = list.map(function(d,i){
+      return ''+
+      '<article class="card" style="animation-delay:'+(i*40)+'ms">'+
+        '<div class="thumb '+d.tone+'">'+
+          (d.tag?'<span class="tag">'+esc(d.tag)+'</span>':'')+
+          '<span aria-hidden="true">'+d.emoji+'</span>'+
+        '</div>'+
+        '<div class="card-body">'+
+          '<div class="card-head"><div>'+
+            '<h3>'+esc(d.name)+'</h3>'+
+            '<p>'+esc(d.desc)+'</p>'+
+          '</div></div>'+
+          '<div class="card-foot">'+
+            '<span class="price">'+money(d.price)+' <small>起</small></span>'+
+            '<button class="btn btn-primary btn-icon" data-add="'+d.id+'" aria-label="加入购物车：'+esc(d.name)+'">＋</button>'+
+          '</div>'+
+        '</div>'+
+      '</article>';
+    }).join("");
+  }
+
+  /* ============ 购物车渲染 ============ */
+  function cartItemHTML(i){
+    return '<div class="ci">'+
+      '<div class="emoji '+i.tone+'">'+i.emoji+'</div>'+
+      '<div class="ci-main">'+
+        '<div class="ci-line"><span class="ci-name">'+esc(i.name)+'</span><span class="ci-price">'+money(i.unitPrice*i.qty)+'</span></div>'+
+        '<div class="ci-spec">'+esc(i.spec)+'</div>'+
+        '<div class="ci-ctrl">'+
+          '<span class="stepper">'+
+            '<button data-dec="'+i.uid+'" aria-label="减少数量">−</button>'+
+            '<span class="qty">'+i.qty+'</span>'+
+            '<button class="plus" data-inc="'+i.uid+'" aria-label="增加数量">＋</button>'+
+          '</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function renderCartPanel(){
+    var panel=$("#cartPanel");
+    if(!state.cart.length){
+      panel.innerHTML =
+        '<div class="cart-head"><div><h3>本桌购物车</h3><div class="count">共 0 份菜品</div></div></div>'+
+        '<div class="cart-empty"><div class="ico">🛒</div>'+
+        '<h4>这一锅，还差点心动</h4><p>挑选锅底和喜欢的菜品，\n一起点更有趣。</p></div>';
+    }else{
+      panel.innerHTML =
+        '<div class="cart-head"><div><h3>本桌购物车</h3>'+
+        '<div class="count">共 '+cartCount()+' 份菜品</div></div></div>'+
+        '<div class="cart-items">'+state.cart.map(cartItemHTML).join("")+'</div>'+
+        '<div class="totals">'+
+          '<div class="row"><span>菜品小计</span><span>'+money(cartSubtotal())+'</span></div>'+
+          '<div class="grand"><span>预估合计</span><b>'+money(cartSubtotal())+'</b></div>'+
+        '</div>'+
+        '<button class="btn btn-primary btn-block" id="panelCheckout" style="margin-top:14px">去结算</button>'+
+        '<p class="hint">提交后，菜品将发送至后厨</p>';
+    }
+    renderBar();
+  }
+
+  function renderBar(){
+    $("#barBadge").textContent=cartCount();
+    $("#barTotal").textContent=money(cartSubtotal());
+    var btn=$("#barCheckoutBtn");
+    btn.disabled = state.cart.length===0;
+  }
+
+  function renderAll(){ renderCats(); renderDishes(); renderCartPanel(); }
+
+  /* ============ 购物车操作 ============ */
+  function addToCart(dish, spec, unitPrice){
+    // 同菜品同规格合并
+    var exist=null;
+    for(var k=0;k<state.cart.length;k++){
+      if(state.cart[k].dishId===dish.id && state.cart[k].spec===spec){ exist=state.cart[k]; break; }
+    }
+    if(exist){ exist.qty++; }
+    else{
+      state.cart.push({uid:uid(),dishId:dish.id,name:dish.name,emoji:dish.emoji,tone:dish.tone,unitPrice:unitPrice,qty:1,spec:spec});
+    }
+    renderCartPanel();
+    toast("已加入购物车："+dish.name);
+  }
+  function changeQty(id,delta){
+    for(var k=0;k<state.cart.length;k++){
+      if(state.cart[k].uid===id){
+        state.cart[k].qty+=delta;
+        if(state.cart[k].qty<=0){ state.cart.splice(k,1); toast("已移除商品"); }
+        break;
+      }
+    }
+    renderCartPanel();
+    // 若结算弹层正开着，刷新它
+    if($("#modalOverlay").classList.contains("show") && $("#modalSheet").dataset.mode==="checkout"){
+      openCheckout();
+    }
+  }
+
+  /* ============ 规格弹层 ============ */
+  function openSpec(dish){
+    var sel={};
+    if(dish.options){
+      if(dish.options.portion){ sel.portion = dish.options.portion[1] || dish.options.portion[0]; }
+      if(dish.options.flavor){ sel.flavor = dish.options.flavor[0]; }
+      if(dish.options.spicy){ sel.spicy = dish.options.spicy[0]; }
+    }
+    function currentUnit(){
+      var factor = sel.portion==="半份" ? 0.58 : 1;
+      return Math.round(dish.price*factor);
+    }
+    function buildSpec(){
+      var parts=[];
+      if(sel.portion) parts.push(sel.portion);
+      if(sel.flavor) parts.push(sel.flavor);
+      if(sel.spicy) parts.push(sel.spicy);
+      return parts.length?parts.join(" · "):"标准份";
+    }
+    function optionGroup(key,label,options){
+      if(!options) return "";
+      return '<div class="opt-group" data-group="'+key+'"><p>'+label+'</p><div class="opts">'+
+        options.map(function(o){
+          return '<button class="opt'+(sel[key]===o?" active":"")+'" data-opt="'+esc(o)+'">'+esc(o)+'</button>';
+        }).join("")+'</div></div>';
+    }
+    function paint(){
+      var sheet=$("#specOverlay .sheet");
+      sheet.innerHTML =
+        '<div class="sheet-head"><h3 id="specTitle">'+esc(dish.name)+'</h3>'+
+        '<button class="x" data-close-spec aria-label="关闭">✕</button></div>'+
+        '<div class="spec-dish"><div class="emoji '+dish.tone+'">'+dish.emoji+'</div>'+
+          '<div><p>'+esc(dish.desc)+'</p><p style="margin-top:6px;font-weight:800;color:var(--chili-500);font-size:18px" id="specPrice">'+money(currentUnit())+'</p></div></div>'+
+        optionGroup("portion","选择份量",dish.options&&dish.options.portion)+
+        optionGroup("flavor","选择口味",dish.options&&dish.options.flavor)+
+        optionGroup("spicy","选择辣度",dish.options&&dish.options.spicy)+
+        '<button class="btn btn-primary btn-block" id="confirmAdd" style="margin-top:20px">加入购物车 · '+money(currentUnit())+'</button>';
+    }
+    paint();
+    showOverlay($("#specOverlay"));
+
+    var sheet=$("#specOverlay .sheet");
+    sheet.onclick=function(e){
+      var close=e.target.closest("[data-close-spec]");
+      if(close){ hideOverlays(); return; }
+      var grp=e.target.closest(".opt-group");
+      var optBtn=e.target.closest(".opt");
+      if(grp && optBtn){
+        var key=grp.getAttribute("data-group");
+        var val=optBtn.getAttribute("data-opt");
+        // 超级辣风险二次确认
+        if(key==="spicy" && val==="超级辣"){
+          if(window.confirm("风险提示：「超级辣」辣度极高，可能引起明显肠胃不适。确认选择该辣度？")){
+            sel[key]=val; paint();
+          }
+          return;
+        }
+        sel[key]=val; paint();
+        return;
+      }
+      if(e.target.closest("#confirmAdd")){
+        addToCart(dish, buildSpec(), currentUnit());
+        hideOverlays();
+      }
+    };
+  }
+
+  /* ============ 结算弹层 ============ */
+  function openCheckout(){
+    state.payMethod=state.payMethod||"mobile";
+    function paint(){
+      var sub=cartSubtotal(), dis=discount(), pay=sub-dis;
+      var rows=state.cart.map(function(i){
+        return '<div class="co-row"><span>'+esc(i.name)+' <small style="color:var(--charcoal-500)">× '+i.qty+(i.spec==="标准份"?"":" · "+esc(i.spec))+'</small></span><span>'+money(i.unitPrice*i.qty)+'</span></div>';
+      }).join("");
+      var sheet=$("#modalSheet");
+      sheet.dataset.mode="checkout";
+      sheet.innerHTML =
+        '<div class="sheet-head"><div><div style="font-size:11px;font-weight:800;color:var(--chili-500)">CHECKOUT</div>'+
+        '<h3>核对本桌账单</h3></div>'+
+        '<button class="x" data-close-modal aria-label="关闭">✕</button></div>'+
+        '<div class="co-list">'+rows+'</div>'+
+        '<div class="co-divider">'+
+          '<div class="co-row" style="color:var(--charcoal-500)"><span>菜品小计</span><span>'+money(sub)+'</span></div>'+
+          (dis>0?'<div class="co-row" style="color:var(--chili-500)"><span>🎁 会员菜品券（满 100 减 30）</span><span>-'+money(dis)+'</span></div>':
+                  '<div class="co-row" style="color:var(--charcoal-500)"><span>🎁 会员菜品券</span><span>满 100 减 30</span></div>')+
+          '<div class="co-row" style="font-weight:800;font-size:16px"><span>应付合计</span><span style="color:var(--chili-500);font-size:24px">'+money(pay)+'</span></div>'+
+        '</div>'+
+        '<div class="opt-group" style="margin-top:16px"><p>选择支付方式</p><div class="co-methods">'+
+          methodBtn("mobile","📱","移动支付","微信 / 支付宝")+
+          methodBtn("pos","💳","桌边 POS","服务员到桌协助")+
+        '</div></div>'+
+        '<button class="btn btn-primary btn-block" id="payBtn" style="margin-top:18px">确认支付 '+money(pay)+'</button>';
+    }
+    function methodBtn(id,ico,name,note){
+      return '<button class="method'+(state.payMethod===id?" active":"")+'" data-method="'+id+'">'+
+        '<span class="m-ico">'+ico+'</span><span><strong>'+name+'</strong><small>'+note+'</small></span></button>';
+    }
+    paint();
+    showOverlay($("#modalOverlay"));
+    var sheet=$("#modalSheet");
+    sheet.onclick=function(e){
+      if(e.target.closest("[data-close-modal]")){ hideOverlays(); return; }
+      var m=e.target.closest("[data-method]");
+      if(m){ state.payMethod=m.getAttribute("data-method"); paint(); return; }
+      if(e.target.closest("#payBtn")){ submitOrder(); }
+    };
+  }
+
+  /* ============ 下单 / 成功反馈 ============ */
+  function genOrderNo(){
+    var d=new Date();
+    function p(n){return (n<10?"0":"")+n;}
+    return "FD"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+
+      p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+  }
+  function submitOrder(){
+    if(!state.cart.length){ toast("购物车还是空的"); return; }
+    state.orderNo=genOrderNo();
+    var pay=payable(), count=cartCount(), no=state.orderNo;
+    var methodName = state.payMethod==="pos"?"桌边 POS":"移动支付";
+    var sheet=$("#modalSheet");
+    sheet.dataset.mode="success";
+    sheet.innerHTML =
+      '<div class="success">'+
+        '<div class="ok">'+
+          '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'+
+        '</div>'+
+        '<div class="okbadge">ORDER &amp; PAYMENT SUCCESSFUL</div>'+
+        '<h2>下单并支付成功</h2>'+
+        '<p>订单号 #'+esc(no)+' · 共 '+count+' 份菜品\n支付方式：'+esc(methodName)+'\n菜品已发送至后厨，请耐心等候上菜～</p>'+
+        '<div class="paid"><small>本次实付</small><b>'+money(pay)+'</b></div>'+
+        '<button class="btn btn-primary btn-block" id="doneBtn" style="margin-top:18px">完成，继续点餐</button>'+
+        '<button class="btn btn-outline btn-block" id="viewBtn" style="margin-top:10px">查看账单明细</button>'+
+      '</div>';
+    // 清空购物车
+    state.cart=[];
+    renderCartPanel();
+    showOverlay($("#modalOverlay"));
+    sheet.onclick=function(e){
+      if(e.target.closest("#doneBtn")){ hideOverlays(); toast("感谢光临，期待再次下单"); }
+      if(e.target.closest("#viewBtn")){ toast("订单 #"+no+" 已提交，明细见结账小票（原型演示）"); }
+    };
+  }
+
+  /* ============ 移动端：查看购物车弹层 ============ */
+  function openMobileCart(){
+    function paint(){
+      var sheet=$("#modalSheet");
+      sheet.dataset.mode="cart";
+      if(!state.cart.length){
+        sheet.innerHTML='<div class="sheet-head"><h3>本桌购物车</h3><button class="x" data-close-modal>✕</button></div>'+
+          '<div class="cart-empty"><div class="ico">🛒</div><h4>购物车还是空的</h4><p>去挑几样喜欢的菜吧。</p></div>';
+      }else{
+        sheet.innerHTML='<div class="sheet-head"><div><h3>本桌购物车</h3>'+
+          '<div class="count" style="font-size:12px;color:var(--charcoal-500)">共 '+cartCount()+' 份菜品</div></div>'+
+          '<button class="x" data-close-modal>✕</button></div>'+
+          '<div class="cart-items" style="max-height:none;margin-top:14px">'+state.cart.map(cartItemHTML).join("")+'</div>'+
+          '<div class="totals"><div class="row"><span>菜品小计</span><span>'+money(cartSubtotal())+'</span></div>'+
+          '<div class="grand"><span>预估合计</span><b>'+money(cartSubtotal())+'</b></div></div>'+
+          '<button class="btn btn-primary btn-block" id="goCo" style="margin-top:14px">去结算 · '+money(cartSubtotal())+'</button>';
+      }
+    }
+    paint();
+    showOverlay($("#modalOverlay"));
+    var sheet=$("#modalSheet");
+    sheet.onclick=function(e){
+      if(e.target.closest("[data-close-modal]")){ hideOverlays(); return; }
+      if(e.target.closest("#goCo")){ openCheckout(); }
+    };
+  }
+
+  /* ============ overlay 控制 ============ */
+  function showOverlay(ov){ ov.classList.add("show"); document.body.style.overflow="hidden"; }
+  function hideOverlays(){
+    document.querySelectorAll(".overlay").forEach(function(o){o.classList.remove("show");});
+    document.body.style.overflow="";
+  }
+
+  /* ============ 事件委托 ============ */
+  document.addEventListener("click",function(e){
+    // 分类
+    var cat=e.target.closest("[data-cat]");
+    if(cat){ state.activeCat=cat.getAttribute("data-cat"); renderCats(); renderDishes(); return; }
+    // 加购（打开规格）
+    var add=e.target.closest("[data-add]");
+    if(add){
+      var d=null,id=add.getAttribute("data-add");
+      for(var k=0;k<DISHES.length;k++){ if(DISHES[k].id===id){d=DISHES[k];break;} }
+      if(d) openSpec(d);
+      return;
+    }
+    // 数量增减（侧栏/弹层通用）
+    var inc=e.target.closest("[data-inc]");
+    if(inc){ changeQty(inc.getAttribute("data-inc"),1); return; }
+    var dec=e.target.closest("[data-dec]");
+    if(dec){ changeQty(dec.getAttribute("data-dec"),-1); return; }
+    // 侧栏结算（桌面）
+    if(e.target.closest("#panelCheckout")){ openCheckout(); return; }
+    // 移动端底部条
+    if(e.target.closest("#barCheckoutBtn")){
+      if(state.cart.length) openCheckout(); else toast("先挑选喜欢的菜品吧");
+      return;
+    }
+    if(e.target.closest("#barCartBtn")){ openMobileCart(); return; }
+    // 点击遮罩空白关闭
+    if(e.target.classList && e.target.classList.contains("overlay")){ hideOverlays(); }
+  });
+
+  // 搜索
+  $("#searchInput").addEventListener("input",function(e){
+    state.keyword=e.target.value||"";
+    renderDishes();
+  });
+  // Esc 关闭
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") hideOverlays(); });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
